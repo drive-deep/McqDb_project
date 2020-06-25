@@ -48,8 +48,8 @@ def binary_search(timestamp_dict,from_time):
             ans=mid
             start=mid+1
                 
-    
-    printlog(ans,to_time)
+    #print("ans=",ans)
+    printlog(ans,from_time,to_time)
  
 ##getnextkey  --function  used to get next key in dictionary given a key an in dictionary d  
 def getnextkey(an,d):
@@ -63,7 +63,7 @@ def getnextkey(an,d):
 ##gettimestamp(x)--function used to get the first valid timestamp in the file x
 def gettimestamp(x):
     regex=r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{4}Z)'
-    with open(x,"r") as file:
+    with open(os.path.join(dir_path,x),"r") as file:
         line=file.readline()
         while(not re.findall(regex,line)):
             line=file.readline()
@@ -74,31 +74,41 @@ def gettimestamp(x):
         return timestamp    
 
 ##printlog ---function used to print log print if timestamp of line in file is less than the given to_time
-def printlog(x,to_time):
+def printlog(x,from_time,to_time):
     file_name=d[x]
     regex=r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{4}Z)'
-    with open(file_name,"r") as file:
-        k=file.readline()
-        timestamp_check=re.findall(regex,k)
-        while(not re.findall(regex,k)):
-            k=file.readline()
-        if k:
-            print k  
-        timestamp_line=re.findall(regex,k)[0]
-        while(comparetimestamp(timestamp_line,to_time)<=0):
-            while(not re.findall(regex,k)):
-                k=file.readline()
-            timestamp_line=re.findall(regex,k)[0]
-            if k:
-                print k
+    with open(os.path.join(dir_path,file_name),"r") as file:
+        line=file.readline()
         
-        file.close()    
-        res=getnextkey(x,d)
-        if res:
-            timestamp_nextfile=gettimestamp(d[res])
-            if(comparetimestamp(to_time,timestamp_nextfile)>=0 ):
-                    
-                printlog(res,to_time)
+        timestamp_check=re.findall(regex,line)
+        if timestamp_check:
+            timestamp=timestamp_check[0]
+            if(comparetimestamp(timestamp,from_time)>=0 and comparetimestamp(timestamp,to_time)<=0):
+                print(line.strip())
+                
+        
+        tmp=0            
+        while line:
+            line=file.readline()
+            timestamp_check=re.findall(regex,line)
+            if timestamp_check:
+                timestamp=(timestamp_check[0])
+                #print(timestamp,from_time,to_time)
+                #print(timestamp,comparetimestamp(timestamp,from_time),comparetimestamp(timestamp,to_time))
+                
+                if(comparetimestamp(timestamp,from_time)>=0 and comparetimestamp(timestamp,to_time)<=0):
+                    print(line.strip())
+                elif(comparetimestamp(timestamp,to_time)>0):
+                    tmp=1
+                    break    
+            if tmp==1:
+                break        
+        if(tmp==0):
+            res=getnextkey(x,d)
+            if res:
+                timestamp_nextfile=gettimestamp(d[res])
+                if(comparetimestamp(to_time,timestamp_nextfile)>=0 ):
+                    printlog(res,from_time,to_time)
                 
             
             
@@ -107,7 +117,7 @@ def printlog(x,to_time):
         
 ##parser :--function used to find first timestamp encountered in every file and stored in a dictionary  with file_no as key and timestamp as value in the same order in which we inserted in the dictionary  
 def parser(dir_path):
-    os.chdir(dir_path)
+    #os.chdir(dir_path)
     regex=r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{4}Z)'
     for x in os.listdir(dir_path):
         if(x[-4:]=='.log' or x[-4:]=='.txt'):
@@ -115,15 +125,18 @@ def parser(dir_path):
             file_no=re.findall(r'\d+',x)
             y=int(file_no[0])
             d[y]=x
-            with open(x,"r") as file:
+            with open(os.path.join(dir_path,x),"r") as file:
                 line=file.readline()
                 
                 while(not re.findall(regex,line)):
                     line=file.readline()
-                   
-                timestamp=re.findall(regex,line)[0]
                 
-                timestamp_dict[y]=timestamp  
+                timestamp_check=re.findall(regex,line)  
+                if timestamp_check:
+                    timestamp=re.findall(regex,line)[0]
+                    timestamp_dict[y]=timestamp
+                
+                  
             
             
            
