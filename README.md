@@ -29,18 +29,30 @@ Problem statement :-
                                     We need a tool that could extract the log lines from a given time range and print it to console in time effective manner.
                                      
 Problem Statement Solution :--
+
 Naive Solution :-
                                         We need to check every file and in every file we check every log and If timestamp of log is between the given time range, we will print the log on console.
+             
+             
 Optimized Solution :-
                               As we have large no. of files (around 10000) and every file-size is 16GB and total data size of 285TB. So, we can’t search every file and every log in every file. To overcome with this problem, I will use binary search to find the file starting with timestamp just smaller than or equal to given from_time. I will use first time stamp in the every file as a base to use binary search as timestamp will be in sorted order.
      Now, I will open that file and I will check the log in the file and if timestamp is between given time range I will print to console. This process will repeat if either we get time in log greater than given to-time, or we checked all log inside the file. If we get time greater than given to-time , I will stop the process. In second case I will open the next file and I will repeat the process until I get time greater than given to-time.
+     
+     
 Function used in the code :- 
 SortFiles(dir_path):-- function used to sort the file name in ascending order for eg after sorting filename will be in order 000001.log,000002.log ...
+
 Parser(dir_path) :-- function used to find first timestamp encountered in every file and stored in a dictionary  with file_no as key and timestamp as value in the same order in which we inserted in the dictionary.
+
 Binary_Search(timestamp_dict,from_time):-- function used to find the file with nearest timestamp less than or equal to given from_time.
+
 GetNextKey(an,d):- function  used to get next key in dictionary given a key an in dictionary d
+
 GetTimeStamp(x):- function used to get the first valid timestamp in the file x
+
 PrintLog(x,from_time,to_time):- function used to print log print if timestamp of line in file is less than the given to_time
+
+
 OUTPUT :-
                   Log between the given time range will be printed on console as well as I stored all log in a text file output_log , that will be generated in the location where LogExtracter.exe is located after the execution of the code.
                  
