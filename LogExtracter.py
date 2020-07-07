@@ -1,4 +1,3 @@
-
 import os
 import re
 import sys
@@ -6,15 +5,23 @@ import datetime
 import dateutil.parser
 import pytz
 from collections import OrderedDict
+import time
+from itertools import islice
 
 
 timestamp_dict=OrderedDict()
 d={}
+'''
+from_time="2020-07-07T01:01:02.9990Z"
+to_time="2020-07-07T01:01:06.0184Z"
+dir_path="c:\Users\Null_ptr\Desktop\project_mcqdb"'''
 from_time=sys.argv[2]
 to_time=sys.argv[4]
 dir_path=sys.argv[6]
 
-output_file=open("output_log","w+")
+line_len=10
+
+
 ##timestamp_dict-- dictionary used to store file_no as key and first time stamp encountered as pair in the file
 ## d -- dictionary used to store file_no as key and file_name as value 
 ##sortfiles :-- function used to sort the file name in ascending order for eg after sorting filename will be in order 000001.log,000002.log ...
@@ -39,7 +46,7 @@ def Binary_Search(timestamp_dict,from_time):
     start=key[0]
     end=key[-1]
     ans=start;
-    
+    #print(start,end)
     while(start<=end):
         mid=(start+end)//2
         if(CompareTimeStamp(timestamp_dict[mid],from_time)==1):
@@ -47,6 +54,7 @@ def Binary_Search(timestamp_dict,from_time):
         else:
             ans=mid
             start=mid+1
+        #print(start,end)    
                 
     #print("ans=",ans)
     PrintLog(ans,from_time,to_time)
@@ -70,57 +78,73 @@ def GetTimeStamp(x):
         timestamp_check=re.findall(regex,line)
         if timestamp_check:
             timestamp=timestamp_check[0]
+            global line_len
+            line_len=len(line)
         
         return timestamp    
 
 ##printlog ---function used to print log print if timestamp of line in file is less than the given to_time
 def PrintLog(x,from_time,to_time):
     file_name=d[x]
+    flag=0
     regex=r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{4}Z)'
     with open(os.path.join(dir_path,file_name),"r") as file:
-        line=file.readline()
         
-        timestamp_check=re.findall(regex,line)
-        if timestamp_check:
-            timestamp=timestamp_check[0]
-            if(CompareTimeStamp(timestamp,from_time)>=0 and CompareTimeStamp(timestamp,to_time)<=0):
-                print(line.strip())
-                output_file.write(str(line))
-                
-        
-        tmp=0            
-        while line:
+        First_TimeStamp=GetTimeStamp(file_name)
+        total_microsec=0
+        from_time1=dateutil.parser.parse(from_time)
+        to_time1=dateutil.parser.parse(to_time)
+        First_TimeStamp1=dateutil.parser.parse(First_TimeStamp)
+        #print('Firsttimestamp=',First_TimeStamp)
+        if from_time1>First_TimeStamp1:
+            diff=from_time1-First_TimeStamp1
+            microsec=diff.microseconds
+            sec=diff.seconds
+            days=diff.days
+            total_microsec=(days*24*60*60*100000)+(sec*100000)+microsec
+            total_microsec=total_microsec//100
+            
+            
+            file.seek(max((line_len+1)*(total_microsec-1),0))
             line=file.readline()
+            
+        
+        
+        for line in file:
+            
             timestamp_check=re.findall(regex,line)
             if timestamp_check:
-                timestamp=(timestamp_check[0])
-                #print(timestamp,from_time,to_time)
-                #print(timestamp,comparetimestamp(timestamp,from_time),comparetimestamp(timestamp,to_time))
                 
+                timestamp=timestamp_check[0]
+                    #print(timestamp,from_time,to_time)
+                    #print(CompareTimeStamp(timestamp,from_time),CompareTimeStamp(timestamp,to_time))
                 if(CompareTimeStamp(timestamp,from_time)>=0 and CompareTimeStamp(timestamp,to_time)<=0):
                     print(line.strip())
-                    output_file.write(str(line))
-                elif(CompareTimeStamp(timestamp,to_time)>0):
-                    tmp=1
-                    break    
-            if tmp==1:
-                output_file.close()
-                break        
-        if(tmp==0):
+                   # output_file.write(str(line))
+                elif(CompareTimeStamp(timestamp,to_time)>0) or not line:
+                    flag=1
+                    break
+        
+                 
+                #print(flag)
+            if flag==1:
+                break
+        
+        
+                   
+        if flag==0:
+     
             res=GetNextKey(x,d)
             if res:
-                timestamp_nextfile=GetTimeStamp(d[res])
-                if(CompareTimeStamp(to_time,timestamp_nextfile)>=0 ):
-                    PrintLog(res,from_time,to_time)
-                
-            
+                PrintLog(res,from_time,to_time)
+
             
             
         
         
 ##parser :--function used to find first timestamp encountered in every file and stored in a dictionary  with file_no as key and timestamp as value in the same order in which we inserted in the dictionary  
 def Parser(dir_path):
-    #os.chdir(dir_path)
+    
     regex=r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{4}Z)'
     for x in os.listdir(dir_path):
         if(x[-4:]=='.log' or x[-4:]=='.txt'):
@@ -130,16 +154,9 @@ def Parser(dir_path):
                 
                 y=int(file_no[0])
                 d[y]=x
-            with open(os.path.join(dir_path,x),"r") as file:
-                line=file.readline()
                 
-                while(not re.findall(regex,line)):
-                    line=file.readline()
-                
-                timestamp_check=re.findall(regex,line)  
-                if timestamp_check:
-                    timestamp=re.findall(regex,line)[0]
-                    timestamp_dict[y]=timestamp
+                timestamp_dict[y]=GetTimeStamp(x)
+            
                 
                   
             
@@ -149,5 +166,4 @@ SortFiles(dir_path)
 Parser(dir_path)
 Binary_Search(timestamp_dict,from_time)
 
-output_file.close() 
 
